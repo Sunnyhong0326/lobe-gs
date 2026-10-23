@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="description"
+        content="LoBE-GS: Load-Balanced and Efficient 3D Gaussian Splatting for Large-Scale Scene Reconstruction.">
+  <meta name="keywords" content="3D Gaussian Splatting, 3DGS, Large-Scale Reconstruction, Load Balancing, Novel View Synthesis">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LoBE-GS: Load-Balanced and Efficient 3D Gaussian Splatting</title>
+
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro"
+        rel="stylesheet">
+
+  <link rel="stylesheet" href="./static/css/bulma.min.css">
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+  <link rel="stylesheet" href="./static/css/index.css">
+  <link rel="icon" href="./static/images/favicon.svg">
+
+  <style>
+    /* ---- LoBE-GS page-specific styles ---- */
+    .lobe { font-variant: small-caps; letter-spacing: 0.02em; }
+
+    /* Placeholder boxes for media you will drop in later. */
+    .media-placeholder {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      min-height: 260px;
+      color: #7a7a7a;
+      background: repeating-linear-gradient(45deg, #f7f7f7, #f7f7f7 12px, #f1f1f1 12px, #f1f1f1 24px);
+      border: 2px dashed #c9c9c9;
+      border-radius: 12px;
+      padding: 1.5rem;
+      font-family: 'Google Sans', sans-serif;
+    }
+    .media-placeholder code {
+      background: #eee;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #444;
+    }
+
+    /* Video player frame. */
+    .comparison-item {
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      padding: 10px;
+      background: #fff;
+    }
+    .comparison-item video,
+    .comparison-item img {
+      width: 100%;
+      height: auto;              /* frame hugs the clip's own aspect ratio (no black bars) */
+      display: block;
+      border-radius: 8px;
+      background: #000;
+    }
+
+    /* Pipeline figure + caption. */
+    .method-figure { max-width: 100%; border-radius: 8px; display: block; margin: 0 auto; }
+    .method-caption {
+      max-width: 820px;
+      margin: 1rem auto 0;
+      text-align: center;
+      color: #555;
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    /* Video gallery: dataset buttons + one player with prev/next arrows. */
+    .video-gallery { margin-bottom: 2rem; }
+
+    /* Connected pill-style dataset selector. */
+    .vg-datasets { margin-bottom: 1rem; justify-content: center; flex-wrap: wrap; }
+    .vg-datasets .button { margin-bottom: 0.5rem; color: #000000; }
+    .vg-datasets .button:hover { color: #275db3; }
+    .vg-datasets .button.is-link { color: #fff; }   /* active button: solid blue, white text */
+    .vg-datasets .button:first-child {
+      border-top-left-radius: 999px;
+      border-bottom-left-radius: 999px;
+      padding-left: 1.15em;
+    }
+    .vg-datasets .button:last-child {
+      border-top-right-radius: 999px;
+      border-bottom-right-radius: 999px;
+      padding-right: 1.15em;
+    }
+    .vg-player { position: relative; }
+    .vg-nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 5;
+      width: 44px;
+      height: 44px;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      background: rgba(20, 20, 20, 0.6);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.05rem;
+      transition: background 0.15s ease;
+    }
+    .vg-nav:hover { background: rgba(20, 20, 20, 0.9); }
+    .vg-nav[disabled] { opacity: 0.35; cursor: default; }
+    .vg-prev { left: 16px; }
+    .vg-next { right: 16px; }
+    /* Sliding clip track (one per row). Viewport height follows the current clip. */
+    .vg-viewport { overflow: hidden; transition: height 0.4s ease; }
+    .vg-track { display: flex; align-items: flex-start; transition: transform 0.4s ease; }
+    .vg-track .vg-item { flex: 0 0 100%; max-width: 100%; box-sizing: border-box; }
+    /* Caption naming the current clip's dataset. */
+    .vg-caption {
+      margin-top: 0.75rem;
+      text-align: center;
+      font-family: 'Google Sans', sans-serif;
+      font-weight: 600;
+      color: #363636;
+    }
+    /* Small clip position indicator, overlaid top-right (no caption text below the video). */
+    .vg-counter {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      z-index: 5;
+      background: rgba(20, 20, 20, 0.6);
+      color: #fff;
+      padding: 2px 12px;
+      border-radius: 999px;
+      font-family: 'Google Sans', sans-serif;
+      font-size: 0.85rem;
+    }
+
+    /* Image comparisons: pill dataset buttons + Ours-vs-Others slider. */
+    .img-compare2 { margin-bottom: 2rem; }
+
+    /* Stage wraps the slider so the side arrows can overlay its edges. */
+    .ic-stage { position: relative; }
+    .ic-nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 6;                  /* above the slider handle/divider */
+      width: 44px;
+      height: 44px;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      background: rgba(20, 20, 20, 0.6);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.05rem;
+      transition: background 0.15s ease;
+    }
+    .ic-nav:hover { background: rgba(20, 20, 20, 0.9); }
+    .ic-nav[disabled] { opacity: 0.35; cursor: default; }
+    .ic-prev { left: 16px; }
+    .ic-next { right: 16px; }
+
+    /* Sliding 1x2 window of drag sliders. */
+    .ic-viewport { overflow: hidden; }
+    .ic-track { display: flex; transition: transform 0.4s ease; }
+    .ic-track .ic-item { position: relative; flex: 0 0 50%; max-width: 50%; padding: 0 6px; box-sizing: border-box; }
+    .ic-track.ic-single .ic-item { flex-basis: 100%; max-width: 100%; }
+
+    /* Expand-to-lightbox button (overlay, so it doesn't trigger the slider drag).
+       Circular to match the other overlay controls (arrows, handle, labels). */
+    .ic-expand {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      z-index: 5;
+      width: 34px;
+      height: 34px;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      background: rgba(20, 20, 20, 0.6);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      transition: background 0.15s ease;
+    }
+    .ic-expand:hover { background: rgba(20, 20, 20, 0.9); }
+    .ic-slider {
+      position: relative;
+      width: 100%;
+      overflow: hidden;
+      border-radius: 8px;
+      background: #000;
+      cursor: ew-resize;
+      touch-action: none;      /* horizontal drag without page scroll */
+      user-select: none;
+    }
+    .ic-slider img { display: block; }
+    .ic-slider .ic-base { width: 100%; height: auto; }    /* defines the box height */
+    .ic-slider .ic-topimg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      clip-path: inset(0 50% 0 0);                        /* JS updates this */
+    }
+    .ic-divider {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 50%;
+      width: 2px;
+      background: #fff;
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+      pointer-events: none;
+      z-index: 3;
+    }
+    .ic-handle {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(20, 20, 20, 0.7);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 4;
+      font-size: 0.85rem;
+    }
+    .ic-label {
+      position: absolute;
+      bottom: 10px;
+      padding: 2px 10px;
+      border-radius: 999px;
+      background: rgba(20, 20, 20, 0.6);
+      color: #fff;
+      font-family: 'Google Sans', sans-serif;
+      font-size: 0.78rem;
+      pointer-events: none;
+      z-index: 3;
+    }
+    .ic-label-left { left: 10px; }
+    .ic-label-right { right: 10px; }
+    .ic2-dots {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 1rem;
+    }
+    .ic2-dot {
+      width: 9px;
+      height: 9px;
+      padding: 0;
+      border: none;
+      border-radius: 50%;
+      background: #cfcfcf;
+      cursor: pointer;
+    }
+    .ic2-dot.is-active { background: #3273dc; }
+
+    /* Lightbox for the enlarged comparison. */
+    .ic-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.85);
+      padding: 3vw;
+    }
+    .ic-modal.is-open { display: flex; }
+    .ic-modal-inner {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      max-width: 50vw;
+      max-height: 50vh;
+    }
+    .ic-modal-slider { width: auto; flex: 0 0 auto; cursor: ew-resize; }
+    .ic-modal-slider .ic-base {
+      width: auto;
+      height: auto;
+      max-width: 50vw;      /* enlarge to at most half the screen */
+      max-height: 50vh;
+    }
+    .ic-modal-close {
+      position: fixed;
+      top: 18px;
+      right: 24px;
+      z-index: 101;
+      width: 44px;
+      height: 44px;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+      font-size: 1.5rem;
+      line-height: 1;
+    }
+    .ic-modal-close:hover { background: rgba(255, 255, 255, 0.3); }
+
+    /* End-to-end runtime bar chart (Ours highlighted vs. gray baselines). */
+    .rt-figure { margin: 0.5rem 0 0.5rem; }
+    .rt-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: center;
+      margin-bottom: 1.1rem;
+      font-family: 'Google Sans', sans-serif;
+      font-size: 0.82rem;
+      color: #555;
+    }
+    .rt-legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .rt-swatch { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+    .rt-chart-scroll { overflow-x: auto; }
+    /* Two panels: the five comparable scenes share one axis; MatrixCity-BigCity is
+       ~20x larger, so it keeps its own axis rather than flattening everything else. */
+    .rt-panels { display: flex; align-items: flex-end; gap: 1.4rem; min-width: 660px; }
+    .rt-panel { min-width: 0; }
+    .rt-panel-main { flex: 5 1 0; }
+    .rt-panel-outlier { flex: 1.25 1 0; padding-right: 1.4rem; border-right: 1px dashed #d6dae0; }
+    .rt-axis-note {
+      font-family: 'Google Sans', sans-serif;
+      font-size: 0.7rem;
+      color: #8a8f98;
+      text-align: center;
+      margin-bottom: 0.35rem;
+      white-space: nowrap;
+    }
+    .rt-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 1.6rem;
+      padding-top: 0.25rem;
+    }
+    .rt-scene { flex: 1 1 0; min-width: 0; }
+    .rt-scene-name {
+      font-family: 'Google Sans', sans-serif;
+      font-weight: 600;
+      font-size: 0.82rem;
+      margin-top: 0.5rem;
+      text-align: center;
+      color: #363636;
+    }
+    /* One group of columns per scene; bars grow upward from a shared baseline. */
+    .rt-plot {
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 8px;
+      height: 210px;
+      border-bottom: 1px solid #dcdfe4;
+    }
+    .rt-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100%;
+      flex: 1 1 0;
+      max-width: 34px;
+    }
+    /* Label sits above the bar; the bar's % height is measured against this area only. */
+    .rt-bar-area { flex: 1 1 auto; width: 100%; min-height: 0; display: flex; align-items: flex-end; }
+    .rt-bar { width: 100%; border-radius: 4px 4px 0 0; }
+    .rt-bar.is-ours { background: #3273dc; }
+    .rt-bar.base-city { background: #8b95a5; }   /* CityGaussian */
+    .rt-bar.base-vast { background: #c2c8d2; }   /* VastGaussian */
+    .rt-val {
+      font-size: 0.72rem;
+      color: #555;
+      font-variant-numeric: tabular-nums;
+      margin-bottom: 3px;
+      white-space: nowrap;
+    }
+    .rt-val.is-ours { color: #3273dc; font-weight: 700; }
+    .rt-callout {
+      text-align: center;
+      color: #1f6feb;
+      font-family: 'Google Sans', sans-serif;
+      font-weight: 600;
+      margin-top: 1rem;
+    }
+
+    /* Results table. */
+    .table-wrap { overflow-x: auto; margin-bottom: 1rem; }
+    table.results {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 0.82rem;
+      white-space: nowrap;
+    }
+    table.results th, table.results td {
+      border: 1px solid #e2e2e2;
+      padding: 6px 10px;
+      text-align: center;
+    }
+    table.results thead th { background: #f5f5f5; font-family: 'Google Sans', sans-serif; }
+    table.results tbody td:first-child { text-align: left; font-weight: 600; }
+    table.results tr.ours { background: #eef6ff; }
+    table.results tr.ours td:first-child { color: #1f6feb; }
+    .group-head td { background: #fafafa; font-style: italic; text-align: left !important; color: #666; }
+    /* Quality ranking across all five methods: best / second / third. */
+    table.results td.rk1 { background: #fbd0d0; font-weight: 700; }
+    table.results td.rk2 { background: #fde3c4; }
+    table.results td.rk3 { background: #fdf3c2; }
+    /* Best runtime among partition-based methods only. */
+    table.results td.gb { background: #e6e8eb; font-weight: 700; }
+    .table-note { color: #777; font-size: 0.85rem; }
+    .rank-key { display: inline-flex; align-items: center; gap: 5px; margin-right: 0.9rem; }
+    .rank-key i {
+      width: 12px; height: 12px; border-radius: 2px;
+      display: inline-block; border: 1px solid rgba(0,0,0,0.08);
+    }
+
+    .method-component { margin-bottom: 1.5rem; }
+  </style>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script defer src="./static/js/fontawesome.all.min.js"></script>
+  <script src="./static/js/index.js"></script>
+</head>
+<body>
+
+<nav class="navbar" role="navigation" aria-label="main navigation">
+  <div class="navbar-brand">
+    <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false">
+      <span aria-hidden="true"></span>
+      <span aria-hidden="true"></span>
+      <span aria-hidden="true"></span>
+    </a>
+  </div>
+</nav>
+
+
+<section class="hero">
+  <div class="hero-body">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered">
+        <div class="column has-text-centered">
+          <h1 class="title is-1 publication-title">
+            <span class="lobe">LoBE-GS</span>: Load-Balanced and Efficient 3D Gaussian
+            Splatting for Large-Scale Scene Reconstruction
+          </h1>
+
+          <div class="is-size-5 publication-authors">
+            <span class="author-block"><a href="https://sunnyhong0326.github.io/">Sheng-Hsiang Hung</a><sup>1</sup>,</span>
+            <span class="author-block"><a href="">Ting-Yu Yen</a><sup>1</sup>,</span>
+            <span class="author-block"><a href="https://about.j3soon.com/">Wei-Fang Sun</a><sup>2</sup>,</span>
+            <span class="author-block"><a href="https://www.linkedin.com/in/simonsee?originalSubdomain=sg">Simon See</a><sup>2</sup>,</span>
+            <span class="author-block"><a href="https://vmlab-nthu.notion.site/Dr-Shih-Hsuan-Hung-143b8d611ddc808c9ec9c1b9988486fb">Shih-Hsuan Hung</a><sup>1</sup>,</span>
+            <span class="author-block"><a href="https://cgv.cs.nthu.edu.tw/hkchu/">Hung-Kuo Chu</a><sup>1</sup></span>
+          </div>
+
+          <div class="is-size-5 publication-authors">
+            <span class="author-block"><sup>1</sup>National Tsing-Hua University</span>
+            <span class="author-block"><sup>2</sup>NVIDIA AI Technology Center</span>
+          </div>
+
+          <div class="is-size-5 publication-authors">
+            <span class="author-block">WACV 2027</span>
+          </div>
+
+          <div class="column has-text-centered">
+            <div class="publication-links">
+              <span class="link-block">
+                <a href=https://arxiv.org/abs/2510.01767 class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon"><i class="ai ai-arxiv"></i></span>
+                  <span>arXiv</span>
+                </a>
+              </span>
+              <span class="link-block">
+                <a href=https://github.com/Sunnyhong0326/lobe-gs class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon"><i class="fab fa-github"></i></span>
+                  <span>Code</span>
+                </a>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- Video Gallery -->
+<section class="section" id="comparisons">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered">
+      <div class="column is-full-width">
+
+        <!-- Flat list of result clips. Each entry is {src, label}; the caption shows the label. -->
+        <div id="video-gallery" class="video-gallery"
+             data-videos='[
+               {"src":"./static/videos/comparisons/bigcity_3.mp4","label":"MatrixCity BigCity"},
+               {"src":"./static/videos/comparisons/smallcity_2.mp4","label":"MatrixCity SmallCity"},
+               {"src":"./static/videos/comparisons/building.mp4","label":"Building (Mill19)"},
+               {"src":"./static/videos/comparisons/rubble.mp4","label":"Rubble (Mill19)"},
+               {"src":"./static/videos/comparisons/residence.mp4","label":"Residence (UrbanScene3D)"},
+               {"src":"./static/videos/comparisons/sciart.mp4","label":"Sci-Art (UrbanScene3D)"}
+             ]'>
+          <div class="vg-player">
+            <button class="vg-nav vg-prev" type="button" aria-label="Previous">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <div class="vg-viewport">
+              <div class="vg-track"><!-- video items injected by index.js --></div>
+            </div>
+            <button class="vg-nav vg-next" type="button" aria-label="Next">
+              <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
+          <div class="vg-caption"></div>
+          <div class="ic2-dots vg-dots"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Abstract -->
+<section class="section" id="abstract">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-four-fifths">
+        <h2 class="title is-3">Abstract</h2>
+        <div class="content has-text-justified">
+          <p>
+            3D Gaussian Splatting (3DGS) has established itself as an efficient representation for
+            real-time, high-fidelity 3D scene reconstruction. However, scaling 3DGS to large and
+            unbounded scenes such as city blocks remains difficult. Existing divide-and-conquer
+            methods alleviate memory pressure by partitioning the scene into blocks and training on
+            multiple, non-communicating GPUs, but introduce new bottlenecks: (i) partitions suffer
+            from severe load imbalance since uniform or heuristic splits do not reflect actual
+            computational demands, and (ii) coarse-to-fine pipelines fail to exploit the coarse stage
+            efficiently, often reloading the entire model and incurring high overhead.
+          </p>
+          <p>
+            In this work, we introduce <span class="lobe">LoBE-GS</span>, a novel Load-Balanced and
+            Efficient 3D Gaussian Splatting framework that re-engineers the large-scale 3DGS
+            pipeline. Specifically, <span class="lobe">LoBE-GS</span> introduces a load-balanced
+            KD-tree scene partitioning scheme with optimized cutlines that balance per-block camera
+            counts. To accelerate preprocessing, it employs depth-based back-projection for fast
+            camera assignment, reducing processing time from hours to minutes. It further reduces
+            training cost through two lightweight techniques: visibility cropping and selective
+            densification.
+          </p>
+          <p>
+            On large-scale urban and outdoor datasets, <span class="lobe">LoBE-GS</span> reduces
+            scene-partitioning time by up to an order of magnitude and the worst-block fine-training
+            time by up to 3&times; relative to CityGaussian, yielding up to <b>9.1&times; faster</b>
+            end-to-end training than prior partition-based methods while maintaining competitive
+            reconstruction quality. <span class="lobe">LoBE-GS</span> provides a communication-free
+            alternative with favorable quality&ndash;efficiency trade-offs under matched GPU budgets.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+
+<!-- Method -->
+<section class="section" id="method">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered">
+      <div class="column is-full-width">
+        <h2 class="title is-3 has-text-centered">Method</h2>
+
+        <!-- Pipeline figure (Figure 1 from the paper). -->
+        <img class="method-figure" src="./static/images/framework.png" alt="LoBE-GS pipeline overview">
+        <p class="method-caption">
+          <b>Overview of the <span class="lobe">LoBE-GS</span> pipeline.</b>
+          We first train a coarse 3DGS model, then perform load-balanced KD-tree partitioning with
+          fast camera selection (FCS), which splits the scene into blocks and efficiently assigns
+          high-coverage cameras to each block using reusable depth-based 3D cues. Each split is
+          further refined via cutline refinement (CR) to balance the workload across blocks. Before
+          and during parallel fine-tuning, visibility cropping (VC) and selective densification (SD)
+          reduce per-block optimization cost while preserving reconstruction quality. Finally, we
+          prune Gaussians outside each block and merge all blocks into a unified, high-quality model.
+        </p>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- Experiments -->
+<section class="section" id="experiments">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered">
+      <div class="column is-full-width">
+        <h2 class="title is-3 has-text-centered">Experiments</h2>
+
+        <div class="content has-text-justified">
+          <p>
+            <b>Setup.</b> We evaluate on six large-scale scenes: <i>Building</i> and <i>Rubble</i>
+            from Mill19, <i>Residence</i> and <i>Sci-Art</i> from UrbanScene3D, and the synthetic
+            <i>MatrixCity-BigCity</i> and <i>MatrixCity-SmallCity</i>. We compare against
+            state-of-the-art large-scale 3DGS methods
+            &mdash; CityGaussian, VastGaussian, and Grendel-GS &mdash; as well as a strong 3DGS&dagger;
+            baseline. Reconstruction quality is measured with PSNR, SSIM, and LPIPS (no post-hoc color
+            correction), and efficiency by end-to-end wall-clock training time under a fixed GPU budget
+            <i>T<sub>E2E</sub><sup>(K)</sup></i>. All experiments run on a single node with 8&times;
+            NVIDIA L40 GPUs.
+          </p>
+        </div>
+
+        <h3 class="title is-4">Training Efficiency</h3>
+        <div class="content has-text-justified">
+          <p>
+            End-to-end wall-clock training time under an 8-GPU budget (shorter is better). Among
+            partition-based methods, <span class="lobe">LoBE-GS</span> is consistently the fastest.
+          </p>
+        </div>
+
+        <div class="rt-figure">
+          <div class="rt-legend">
+            <span><span class="rt-swatch" style="background:#3273dc;"></span> LoBE-GS (Ours)</span>
+            <span><span class="rt-swatch" style="background:#c2c8d2;"></span> VastGaussian</span>
+            <span><span class="rt-swatch" style="background:#8b95a5;"></span> CityGaussian</span>
+          </div>
+          <div class="rt-chart-scroll">
+           <div class="rt-panels">
+            <div class="rt-panel rt-panel-outlier">
+             <div class="rt-axis-note">axis max 141:00</div>
+             <div class="rt-chart">
+              <!-- Separate axis: bar height % = minutes / 8460. -->
+              <div class="rt-scene">
+                <div class="rt-plot">
+                  <div class="rt-col"><span class="rt-val">140:31</span><div class="rt-bar-area"><div class="rt-bar base-city" style="height:99.7%"></div></div></div>
+                  <div class="rt-col"><span class="rt-val">57:29</span><div class="rt-bar-area"><div class="rt-bar base-vast" style="height:40.8%"></div></div></div>
+                  <div class="rt-col"><span class="rt-val is-ours">15:27</span><div class="rt-bar-area"><div class="rt-bar is-ours" style="height:11.0%"></div></div></div>
+                </div>
+                <div class="rt-scene-name">MatrixCity-BigCity</div>
+              </div>
+             </div>
+            </div>
+            <div class="rt-panel rt-panel-main">
+             <div class="rt-axis-note">axis max 7:00</div>
+             <div class="rt-chart">
+              <!-- Bar height % = minutes / 420 (axis max). Values labeled as hh:mm. -->
+              <div class="rt-scene">
+                <div class="rt-plot">
+                  <div class="rt-col"><span class="rt-val">06:53</span><div class="rt-bar-area"><div class="rt-bar base-city" style="height:98.3%"></div></div></div>
+                  <div class="rt-col"><span class="rt-val">04:31</span><div class="rt-bar-area"><div class="rt-bar base-vast" style="height:64.5%"></div></div></div>
+                  <div class="rt-col"><span class="rt-val is-ours">02:08</span><div class="rt-bar-area"><div class="rt-bar is-ours" style="height:30.5%"></div></div></div>
+                </div>
+                <div class="rt-scene-name">MatrixCity-SmallCity</div>
+              </div>
+              <div class="rt-scene">
+                <div class="rt-plot">
+                  <div class="rt-col"><span class="rt-val">04:51</span><div class="rt-bar-area"><div class="rt-bar base-city" style="height:69.3%"></div></div></div>
+                  <div class="rt-col"><span class="rt-val">02:28</span><div class="rt-bar-area"><div class="rt-bar base-vast" style="height:35.2%"></div></div></div>
+                  <div class="rt-col"><span class="rt-val is-ours">01:33</span><div class="rt-bar-area"><div class="rt-bar is-ours" style="height:22.1%"></div></div></div>
+                </div>
+                <div class="rt-scene-name">Building</div>
+              </div>
+              <div class="rt-scene">
+                <div class="rt-plot">
+                  <div class="rt-col"><span class="rt-val">03:33</span><div class="rt-bar-area"><div class="rt-bar base-city" style="height:50.7%"></div></div></div>
+                  <div class="rt-col"><span class="rt-val">01:15</span><div class="rt-bar-area"><div class="rt-bar base-vast" style="height:17.9%"></div></div></div>
+                  <div class="rt-col"><span class="rt-val is-ours">01:01</span><div class="rt-bar-area"><div class="rt-bar is-ours" style="height:14.5%"></div></div></div>
+                </div>
+                <div class="rt-scene-name">Rubble</div>
+              </div>
+              <div class="rt-scene">
+                <div class="rt-plot">
+                  <div class="rt-col"><span class="rt-val">06:11</span><div class="rt-bar-area"><div class="rt-bar base-city" style="height:88.3%"></div></div></div>
+                  <div class="rt-col"><span class="rt-val">02:28</span><div class="rt-bar-area"><div class="rt-bar base-vast" style="height:35.2%"></div></div></div>
+                  <div class="rt-col"><span class="rt-val is-ours">01:38</span><div class="rt-bar-area"><div class="rt-bar is-ours" style="height:23.3%"></div></div></div>
+                </div>
+                <div class="rt-scene-name">Residence</div>
+              </div>
+              <div class="rt-scene">
+                <div class="rt-plot">
+                  <div class="rt-col"><span class="rt-val">02:52</span><div class="rt-bar-area"><div class="rt-bar base-city" style="height:41.0%"></div></div></div>
+                  <div class="rt-col"><span class="rt-val">01:33</span><div class="rt-bar-area"><div class="rt-bar base-vast" style="height:22.1%"></div></div></div>
+                  <div class="rt-col"><span class="rt-val is-ours">00:49</span><div class="rt-bar-area"><div class="rt-bar is-ours" style="height:11.7%"></div></div></div>
+                </div>
+                <div class="rt-scene-name">Sci-Art</div>
+              </div>
+             </div>
+            </div>
+           </div>
+          </div>
+          <p class="rt-callout">Up to 9.1&times; faster end-to-end than CityGaussian, at competitive quality.</p>
+          <p class="table-note has-text-centered">
+            MatrixCity-BigCity is roughly 20&times; longer to train than the other scenes and is plotted
+            on its own axis; bar heights are comparable within each panel, not across panels.
+          </p>
+        </div>
+
+        <br/>
+
+        <h3 class="title is-4">Quantitative Results</h3>
+        <div class="content has-text-justified">
+          <!-- <p>
+            Under an 8-GPU budget, <span class="lobe">LoBE-GS</span> achieves the best overall
+            quality&ndash;efficiency trade-off among partition-based methods &mdash; obtaining the best
+            PSNR/SSIM/LPIPS on MatrixCity-SmallCity, the best LPIPS on MatrixCity-BigCity, and strong
+            results elsewhere &mdash; while delivering up to <b>9.1&times;</b> speedup over
+            CityGaussian and up to <b>3.7&times;</b> over VastGaussian. Runtimes are reported as hh:mm.
+          </p> -->
+        </div>
+
+        <div class="table-wrap">
+          <table class="results">
+            <thead>
+              <tr>
+                <th rowspan="2">Method</th>
+                <th colspan="6">MatrixCity-BigCity</th>
+                <th colspan="6">MatrixCity-SmallCity</th>
+                <th colspan="6">Building</th>
+              </tr>
+              <tr>
+                <th>PSNR</th><th>SSIM</th><th>LPIPS</th><th>T<sub>E2E</sub></th><th>M<sub>peak</sub></th><th>#GS</th>
+                <th>PSNR</th><th>SSIM</th><th>LPIPS</th><th>T<sub>E2E</sub></th><th>M<sub>peak</sub></th><th>#GS</th>
+                <th>PSNR</th><th>SSIM</th><th>LPIPS</th><th>T<sub>E2E</sub></th><th>M<sub>peak</sub></th><th>#GS</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="group-head"><td colspan="19">Single-model / distributed methods</td></tr>
+              <tr>
+                <td>3DGS&dagger;</td>
+                <td>22.64</td><td>0.660</td><td>0.454</td><td>24:29</td><td>16.53</td><td>10.5</td>
+                <td>25.57</td><td>0.794</td><td>0.315</td><td>02:10</td><td>17.06</td><td>11.3</td>
+                <td>20.46</td><td>0.720</td><td>0.305</td><td>01:30</td><td>9.94</td><td>6.2</td>
+              </tr>
+              <tr>
+                <td>Grendel-GS</td>
+                <td>23.01</td><td>0.740</td><td>0.354</td><td>10:46</td><td>21.86</td><td>68.1</td>
+                <td class="rk3">26.96</td><td class="rk3">0.850</td><td class="rk3">0.224</td><td>02:05</td><td>10.99</td><td>20.8</td>
+                <td class="rk1">22.52</td><td class="rk3">0.764</td><td class="rk3">0.277</td><td>00:46</td><td>8.18</td><td>6.9</td>
+              </tr>
+              <tr class="group-head"><td colspan="19">Partition-based methods</td></tr>
+              <tr>
+                <td>VastGS</td>
+                <td class="rk1">29.17</td><td class="rk1">0.889</td><td class="rk2">0.173</td><td>57:29</td><td>20.10</td><td>196.5</td>
+                <td>26.92</td><td>0.845</td><td>0.235</td><td>04:31</td><td>11.71</td><td>19.1</td>
+                <td>21.31</td><td>0.743</td><td>0.277</td><td>02:28</td><td>6.73</td><td>10.5</td>
+              </tr>
+              <tr>
+                <td>CityGS</td>
+                <td class="rk3">27.87</td><td class="rk3">0.838</td><td class="rk3">0.265</td><td>140:31</td><td>17.20</td><td>58.4</td>
+                <td class="rk2">27.46</td><td class="rk2">0.865</td><td class="rk2">0.204</td><td>06:53</td><td>14.11</td><td>23.6</td>
+                <td class="rk3">21.55</td><td class="rk2">0.778</td><td class="rk2">0.246</td><td>04:51</td><td>20.39</td><td>13.2</td>
+              </tr>
+              <tr class="ours">
+                <td>LoBE-GS (Ours)</td>
+                <td class="rk2">28.88</td><td class="rk2">0.888</td><td class="rk1">0.170</td><td class="gb">15:27</td><td>11.50</td><td>197.6</td>
+                <td class="rk1">27.69</td><td class="rk1">0.875</td><td class="rk1">0.185</td><td class="gb">02:08</td><td>7.42</td><td>28.9</td>
+                <td class="rk2">22.13</td><td class="rk1">0.790</td><td class="rk1">0.231</td><td class="gb">01:33</td><td>9.34</td><td>13.9</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="table-wrap">
+          <table class="results">
+            <thead>
+              <tr>
+                <th rowspan="2">Method</th>
+                <th colspan="6">Rubble</th>
+                <th colspan="6">Residence</th>
+                <th colspan="6">Sci-Art</th>
+              </tr>
+              <tr>
+                <th>PSNR</th><th>SSIM</th><th>LPIPS</th><th>T<sub>E2E</sub></th><th>M<sub>peak</sub></th><th>#GS</th>
+                <th>PSNR</th><th>SSIM</th><th>LPIPS</th><th>T<sub>E2E</sub></th><th>M<sub>peak</sub></th><th>#GS</th>
+                <th>PSNR</th><th>SSIM</th><th>LPIPS</th><th>T<sub>E2E</sub></th><th>M<sub>peak</sub></th><th>#GS</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="group-head"><td colspan="19">Single-model / distributed methods</td></tr>
+              <tr>
+                <td>3DGS&dagger;</td>
+                <td>25.47</td><td class="rk3">0.777</td><td class="rk3">0.277</td><td>01:10</td><td>5.84</td><td>3.7</td>
+                <td>21.44</td><td>0.791</td><td>0.236</td><td>01:22</td><td>6.63</td><td>4.1</td>
+                <td>21.34</td><td>0.833</td><td>0.232</td><td>00:48</td><td>3.64</td><td>2.1</td>
+              </tr>
+              <tr>
+                <td>Grendel-GS</td>
+                <td class="rk3">25.72</td><td>0.768</td><td>0.301</td><td>00:30</td><td>5.90</td><td>3.2</td>
+                <td class="rk1">22.37</td><td class="rk3">0.804</td><td class="rk3">0.227</td><td>00:43</td><td>10.99</td><td>4.8</td>
+                <td class="rk1">22.76</td><td class="rk1">0.847</td><td class="rk2">0.222</td><td>00:33</td><td>11.20</td><td>2.0</td>
+              </tr>
+              <tr class="group-head"><td colspan="19">Partition-based methods</td></tr>
+              <tr>
+                <td>VastGS</td>
+                <td>25.13</td><td>0.749</td><td>0.316</td><td>01:15</td><td>3.75</td><td>5.3</td>
+                <td>20.88</td><td>0.778</td><td>0.242</td><td>02:28</td><td>4.74</td><td>7.9</td>
+                <td>20.88</td><td>0.796</td><td>0.291</td><td>01:33</td><td>3.20</td><td>2.9</td>
+              </tr>
+              <tr>
+                <td>CityGS</td>
+                <td class="rk2">25.77</td><td class="rk1">0.813</td><td class="rk1">0.228</td><td>03:33</td><td>14.56</td><td>9.7</td>
+                <td class="rk2">22.00</td><td class="rk1">0.813</td><td class="rk2">0.211</td><td>06:11</td><td>21.66</td><td>10.8</td>
+                <td class="rk3">21.39</td><td class="rk3">0.837</td><td class="rk3">0.230</td><td>02:52</td><td>14.04</td><td>3.7</td>
+              </tr>
+              <tr class="ours">
+                <td>LoBE-GS (Ours)</td>
+                <td class="rk1">25.93</td><td class="rk1">0.813</td><td class="rk2">0.232</td><td class="gb">01:01</td><td>9.40</td><td>9.2</td>
+                <td class="rk3">21.48</td><td class="rk2">0.805</td><td class="rk1">0.209</td><td class="gb">01:38</td><td>9.00</td><td>11.2</td>
+                <td class="rk2">21.45</td><td class="rk2">0.843</td><td class="rk1">0.219</td><td class="gb">00:49</td><td>5.49</td><td>4.5</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="table-note">
+          Table 1. Quantitative comparison on MatrixCity, Mill19, and UrbanScene3D under an 8-GPU
+          budget. We report PSNR, SSIM, LPIPS, end-to-end runtime <i>T<sub>E2E</sub><sup>(8)</sup></i>
+          (hh:mm), peak per-GPU memory <i>M<sub>peak</sub></i> (GB), and final model size #GS (millions
+          of Gaussians).
+          <br/>
+          <span class="rank-key"><i style="background:#fbd0d0;"></i> best</span>
+          <span class="rank-key"><i style="background:#fde3c4;"></i> second</span>
+          <span class="rank-key"><i style="background:#fdf3c2;"></i> third</span>
+          reconstruction quality across all five methods.
+          <span class="rank-key"><i style="background:#e6e8eb;"></i> bold</span>
+          marks the best runtime among partition-based methods.
+        </p>
+
+        <br/>
+
+        <h3 class="title is-4">Runtime Breakdown &amp; Load Balancing</h3>
+        <div class="content has-text-justified">
+          <!-- <p>
+            Across all scenes, <span class="lobe">LoBE-GS</span> attains the lowest coarse-stage time,
+            partitioning time, and maximum fine-stage block time. 
+          </p> -->
+        </div>
+
+        <div class="table-wrap">
+          <table class="results">
+            <thead>
+              <tr>
+                <th rowspan="2">Method</th>
+                <th colspan="3">MatrixCity-SmallCity</th>
+                <th colspan="3">Building</th>
+                <th colspan="3">Rubble</th>
+                <th colspan="3">Residence</th>
+                <th colspan="3">Sci-Art</th>
+              </tr>
+              <tr>
+                <th>T<sub>coarse</sub></th><th>T<sub>part</sub></th><th>max&nbsp;T<sub>fine</sub></th>
+                <th>T<sub>coarse</sub></th><th>T<sub>part</sub></th><th>max&nbsp;T<sub>fine</sub></th>
+                <th>T<sub>coarse</sub></th><th>T<sub>part</sub></th><th>max&nbsp;T<sub>fine</sub></th>
+                <th>T<sub>coarse</sub></th><th>T<sub>part</sub></th><th>max&nbsp;T<sub>fine</sub></th>
+                <th>T<sub>coarse</sub></th><th>T<sub>part</sub></th><th>max&nbsp;T<sub>fine</sub></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>VastGS</td>
+                <td>&ndash;</td><td>00:48</td><td>01:13</td>
+                <td>&ndash;</td><td>00:05</td><td>00:44</td>
+                <td>&ndash;</td><td>00:04</td><td>00:39</td>
+                <td>&ndash;</td><td>00:08</td><td>00:49</td>
+                <td>&ndash;</td><td>00:20</td><td>00:31</td>
+              </tr>
+              <tr>
+                <td>CityGS</td>
+                <td>00:52</td><td>01:39</td><td>01:00</td>
+                <td>00:59</td><td>00:21</td><td>01:06</td>
+                <td>01:06</td><td>00:09</td><td>01:14</td>
+                <td>00:43</td><td>00:31</td><td>01:22</td>
+                <td>00:42</td><td>00:08</td><td>00:45</td>
+              </tr>
+              <tr class="ours">
+                <td>LoBE-GS (Ours)</td>
+                <td>00:38</td><td>00:08</td><td>00:27</td>
+                <td>00:25</td><td>00:02</td><td>00:28</td>
+                <td>00:23</td><td>00:01</td><td>00:25</td>
+                <td>00:26</td><td>00:03</td><td>00:26</td>
+                <td>00:16</td><td>00:02</td><td>00:20</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="table-note">
+          Table 2. Runtime breakdown for partition-based methods (hh:mm): coarse-stage time
+          <i>T<sub>coarse</sub></i>, partitioning time <i>T<sub>part</sub></i>, and the slowest
+          fine-stage block <i>max&nbsp;T<sub>fine</sub></i> (the straggler / load-balancing metric).
+          &ldquo;&ndash;&rdquo; = stage not used by that method.
+        </p>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- Visual Comparisons -->
+<section class="section" id="image-comparisons">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered">
+      <div class="column is-full-width">
+
+        <h2 class="title is-3 has-text-centered">Visual Comparisons</h2>
+
+        <!-- Data-driven: one entry per dataset with a list of comparisons. Each comparison has its
+             OWN ours/other image pair (2 images per baseline). Two sliders show per page; the arrows
+             slide the window to the next/previous comparison. -->
+        <div class="img-compare2"
+             data-datasets='[
+               {"name":"MatrixCity BigCity","comparisons":[
+                 {"name":"3DGS","ours":"./static/images/comparisons/bigcity/ours/00078.png","other":"./static/images/comparisons/bigcity/3dgs/00078.png"},
+                 {"name":"CityGaussian","ours":"./static/images/comparisons/bigcity/ours/07138.png","other":"./static/images/comparisons/bigcity/citygs/07138.png"},
+                 {"name":"VastGaussian","ours":"./static/images/comparisons/bigcity/ours/01956.png","other":"./static/images/comparisons/bigcity/vastgs/01956.png"},
+                 {"name":"Grendel-GS","ours":"./static/images/comparisons/bigcity/ours/00776.png","other":"./static/images/comparisons/bigcity/grendelgs/00776.png"},
+                 {"name":"3DGS","ours":"./static/images/comparisons/bigcity/ours/00356.png","other":"./static/images/comparisons/bigcity/3dgs/00356.png"},
+                 {"name":"CityGaussian","ours":"./static/images/comparisons/bigcity/ours/05812.png","other":"./static/images/comparisons/bigcity/citygs/05812.png"},
+                 {"name":"VastGaussian","ours":"./static/images/comparisons/bigcity/ours/01758.png","other":"./static/images/comparisons/bigcity/vastgs/01758.png"},
+                 {"name":"Grendel-GS","ours":"./static/images/comparisons/bigcity/ours/00344.png","other":"./static/images/comparisons/bigcity/grendelgs/00344.png"}
+               ]},
+               {"name":"MatrixCity SmallCity","comparisons":[
+                 {"name":"3DGS","ours":"./static/images/comparisons/smallcity/ours/00190.png","other":"./static/images/comparisons/smallcity/3dgs/00190.png"},
+                 {"name":"CityGaussian","ours":"./static/images/comparisons/smallcity/ours/00233.png","other":"./static/images/comparisons/smallcity/citygs/00233.png"},
+                 {"name":"VastGaussian","ours":"./static/images/comparisons/smallcity/ours/00340.png","other":"./static/images/comparisons/smallcity/vastgs/00340.png"},
+                 {"name":"Grendel-GS","ours":"./static/images/comparisons/smallcity/ours/00477.png","other":"./static/images/comparisons/smallcity/grendelgs/00477.png"}
+               ]},
+               {"name":"Building","comparisons":[
+                 {"name":"3DGS","ours":"./static/images/comparisons/building/ours/00003.png","other":"./static/images/comparisons/building/3dgs/00003.png"},
+                 {"name":"CityGaussian","ours":"./static/images/comparisons/building/ours/00014.png","other":"./static/images/comparisons/building/citygs/00014.png"},
+                 {"name":"VastGaussian","ours":"./static/images/comparisons/building/ours/00015.png","other":"./static/images/comparisons/building/vastgs/00015.png"},
+                 {"name":"Grendel-GS","ours":"./static/images/comparisons/building/ours/00018.png","other":"./static/images/comparisons/building/grendelgs/00018.png"}
+               ]},
+               {"name":"Rubble","comparisons":[
+                {"name":"3DGS","ours":"./static/images/comparisons/rubble/ours/00007.png","other":"./static/images/comparisons/rubble/3dgs/00007.png"},
+                 {"name":"CityGaussian","ours":"./static/images/comparisons/rubble/ours/00002.png","other":"./static/images/comparisons/rubble/citygs/00002.png"},
+                 {"name":"VastGaussian","ours":"./static/images/comparisons/rubble/ours/00012.png","other":"./static/images/comparisons/rubble/vastgs/00012.png"},
+                 {"name":"Grendel-GS","ours":"./static/images/comparisons/rubble/ours/00014.png","other":"./static/images/comparisons/rubble/grendelgs/00014.png"}
+               ]},
+               {"name":"Residence","comparisons":[
+                 {"name":"3DGS","ours":"./static/images/comparisons/residence/ours/00018.png","other":"./static/images/comparisons/residence/3dgs/00018.png"},
+                 {"name":"CityGaussian","ours":"./static/images/comparisons/residence/ours/00019.png","other":"./static/images/comparisons/residence/citygs/00019.png"},
+                 {"name":"VastGaussian","ours":"./static/images/comparisons/residence/ours/00020.png","other":"./static/images/comparisons/residence/vastgs/00020.png"},
+                 {"name":"Grendel-GS","ours":"./static/images/comparisons/residence/ours/00016.png","other":"./static/images/comparisons/residence/grendelgs/00016.png"}
+               ]},
+               {"name":"Sci-Art","comparisons":[
+                 {"name":"3DGS","ours":"./static/images/comparisons/sciart/ours/00007.png","other":"./static/images/comparisons/sciart/3dgs/00007.png"},
+                 {"name":"CityGaussian","ours":"./static/images/comparisons/sciart/ours/00017.png","other":"./static/images/comparisons/sciart/citygs/00017.png"},
+                 {"name":"VastGaussian","ours":"./static/images/comparisons/sciart/ours/00010.png","other":"./static/images/comparisons/sciart/vastgs/00010.png"},
+                 {"name":"Grendel-GS","ours":"./static/images/comparisons/sciart/ours/00013.png","other":"./static/images/comparisons/sciart/grendelgs/00013.png"}
+               ]}
+             ]'>
+          <!-- Dataset buttons (pill group, injected by index.js) -->
+          <div class="buttons has-addons is-centered vg-datasets"></div>
+
+          <!-- Sliding window of Ours-vs-baseline drag sliders (2 visible). Items injected by index.js. -->
+          <div class="ic-stage">
+            <button class="ic-nav ic-prev" type="button" aria-label="Previous comparison">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <div class="ic-viewport">
+              <div class="ic-track"></div>
+            </div>
+            <button class="ic-nav ic-next" type="button" aria-label="Next comparison">
+              <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
+          <div class="ic2-dots"></div>
+
+          <!-- Lightbox: enlarged drag slider, opened by the expand button on an item -->
+          <div class="ic-modal">
+            <button class="ic-modal-close" type="button" aria-label="Close">&times;</button>
+            <div class="ic-modal-inner">
+              <div class="ic-slider ic-modal-slider">
+                <img class="ic-base" alt="Baseline method">
+                <img class="ic-topimg" alt="Ours (LoBE-GS)">
+                <div class="ic-divider"></div>
+                <div class="ic-handle"><i class="fas fa-arrows-alt-h"></i></div>
+                <span class="ic-label ic-label-left">Ours</span>
+                <span class="ic-label ic-label-right"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+
+
+
+<footer class="footer">
+  <div class="container">
+    <div class="columns is-centered">
+      <div class="column is-8">
+        <div class="content has-text-centered">
+          <p>
+            Website template borrowed from
+            <a href="https://github.com/nerfies/nerfies.github.io">Nerfies</a>, licensed under a
+            <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons
+            Attribution-ShareAlike 4.0 International License</a>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
