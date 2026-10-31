@@ -1,0 +1,13 @@
+model_params:
+  model_config:
+    name: GaussianModel
+    kwargs: {}
+  source_path: ""
+  config: "align"
+  up_axis: z
+
+partition_params: {}
+optim_params: {}
+pipeline_params: {}
+
+args: {}

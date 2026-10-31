@@ -1,0 +1,83 @@
+model_params:
+  model_config:
+    name: GaussianModel
+    kwargs:
+      optimizer_type: "default"
+      appearance_enabled: true
+  sh_degree: 3
+  source_path: ""
+  out_dir: ""
+  exp_name: ""
+  images: "images"
+  resolution: -1
+  alpha_masks: ""
+  depths: ""
+  model_path: ""
+  coarse_model_path: ""
+  coarse_ply_path: ""
+  appearance_module_path: ""
+  data_partition_path: ""
+  use_pretrain: true
+  config: "fine"
+  block_id: -1
+  xyz_plane: [1,1,0]
+  align_enabled: false
+  depth_loss_enabled: false
+  dense_init_enabled: false
+  random_background: false
+  proxy_load_metric: "visible_pts"
+  aabb: []
+  block_dim: []
+  use_tb_logger: true
+  use_block_bounds_json: true
+  enlarge_bbox_ratio: 1.1
+  aabb_pad: 0.0
+  save_block_only: true
+  
+partition_params: {}
+
+optim_params:
+  iterations: 30000
+  position_lr_init: 0.000064
+  position_lr_final: 0.00000064
+  position_lr_delay_mult: 0.01
+  position_lr_max_steps: 30_000
+  feature_lr: 0.0025
+  opacity_lr: 0.05
+  scaling_lr: 0.005
+  rotation_lr: 0.001
+  depth_l1_weight_init: 0.1
+  depth_l1_weight_final: 0.001
+
+  percent_dense : 0.01
+  densification_interval : 100
+  opacity_reset_interval : 3000
+  densify_from_iter : 500
+  densify_until_iter : 15_000
+  densify_grad_threshold : 0.0002
+
+  lambda_dssim : 0.2
+  random_background : False
+
+  # block reconstruction options
+  densify_inblock_only : True
+  densify_inblock_from_iter : 0
+  use_visibility_crop : True
+
+  # appearance module
+  appearance_params:
+    grid_size: [16,16,8]
+    appearance_lr_init: 0.0002
+    appearance_lr_delay_mult: 0.01
+    appearance_loss_weight : 10
+    cc_ssim_enabled: True
+    decoupled_ssim_enabled: False
+
+pipeline_params:
+  render_mode: RGB
+
+args:
+  port: 6009
+  save_every: -1
+  use_dataloader: false
+  block_id: -1

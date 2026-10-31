@@ -1,0 +1,36 @@
+defaults:
+  - align: base
+  - coarse: base
+  - fine: base
+  - partition: base
+  - _self_
+
+pipeline:
+  mode: full
+  partition_image_fractions: [0.25, 0.5, 0.75]
+  block_dim: [] # change to your desired block dim
+  port_start: 4041
+  gpu_mem_threshold: 1500
+  exp_name: ""
+  out_dir: output
+  aabb: []
+  source_path: ""
+  train_dir: "train"
+  test_dir: "test"
+  images: images
+  resolution: 4
+  eval_coarse: false
+  cc_ssim_enabled: true
+  decoupled_ssim_enabled: false
+  appearance_enabled: false
+  use_dataloader: false
+  align_enabled: false
+  xyz_plane: [1,1,0]
+  random_background: false
+  num_blocks: 8
+  camera_count: null
+  iterations: null
+  pretrained_coarse_model_path: ""
+  dense_init_enabled: false
+  use_pretrain: true
+  aabb_pad: 0

@@ -1,0 +1,45 @@
+model_params:
+  model_config:
+    name: GaussianModel
+    kwargs: {}
+  source_path: ""
+  out_dir: ""
+  exp_name: ""
+  model_path: ""
+  coarse_model_path: ""
+  coarse_ply_path: ""
+  data_partition_path: ""
+  images: "images"
+  resolution: 4
+  aabb: []
+  block_dim: []
+  config: "partition"
+  partition_type: kdtree
+  align_enabled: false
+  use_pretrain: true
+  xyz_plane: [1,1,0]
+  proxy_load_metric: "cam_count"
+  aabb_pad: 0.0
+  training_image_fraction: 1.0
+  
+partition_params:
+  num_blocks: 8
+  contracted_space: true
+  camera_selection_method: rendered_depth
+  depth_mode: ED # only used when rendered_depth camera selection
+  save_proxy_visibility_metrics: false # if true, save vis/contri metrics to CSV; may consume additional memory usage
+  ssim_threshold: 0.01
+  ssim_disable_inblock: false
+  camera_selection_threshold: 0.15
+  cutline_refinement_enabled: true
+  cutline_refinement_qmin: 0.1
+  cutline_refinement_qmax: 0.9
+  cutline_refinement_max_iters: 3
+  baseline_random_split: false   # if true: random node selection + no cutline refinement
+  baseline_random_seed: 0        # seed for reproducible random node selection
+
+optim_params: {}
+pipeline_params: {}
+
+args:
+  block_bounds_json: null

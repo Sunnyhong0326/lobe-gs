@@ -1,0 +1,15 @@
+out
+output
+data
+plots
+thirdparty
+run.sh
+vis
+viz
+__pycache__
+.vscode
+outputs
+.ipynb_checkpoints
+*.json
+*.ply
+.codex

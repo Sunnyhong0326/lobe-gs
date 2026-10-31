@@ -1,0 +1,62 @@
+model_params:
+  model_config:
+    name: GaussianModel
+    kwargs:
+      optimizer_type: "sparse_adam"
+      appearance_enabled: true
+  sh_degree: 3
+  source_path: ""
+  out_dir: ""
+  exp_name: ""
+  images: "images"
+  resolution: 4
+  depths: ""
+  alpha_masks: ""
+  model_path: ""
+  config: "coarse"
+  align_enabled: true
+  depth_loss_enabled: false
+  dense_init_enabled: false
+  random_background: false
+  use_tb_logger: true
+
+partition_params: {}
+
+optim_params:
+  iterations: 30000
+  position_lr_init: 0.00016
+  position_lr_final: 0.0000016
+  position_lr_delay_mult: 0.01
+  position_lr_max_steps: 30_000
+  feature_lr: 0.0025
+  opacity_lr: 0.05
+  scaling_lr: 0.005
+  rotation_lr: 0.001
+  depth_l1_weight_init: 1
+  depth_l1_weight_final: 0.01
+
+  percent_dense : 0.01
+  densification_interval : 100
+  opacity_reset_interval : 3000
+  densify_from_iter : 500
+  densify_until_iter : 15_000
+  densify_grad_threshold : 0.0002
+
+  lambda_dssim : 0.2
+  random_background : False
+
+  # appearance module
+  appearance_params:
+    grid_size: [16,16,8]
+    appearance_lr_init: 0.0002
+    appearance_lr_delay_mult: 0.01
+    appearance_loss_weight : 10
+    cc_ssim_enabled: True
+    decoupled_ssim_enabled: False
+
+pipeline_params:
+  render_mode: RGB
+
+args:
+  save_every: -1
+  use_dataloader: false
