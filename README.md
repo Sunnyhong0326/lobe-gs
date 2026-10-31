@@ -135,9 +135,10 @@ python main.py \
 See the [configuration and argument guide](doc/arguments.md) for YAML defaults,
 pipeline modes, and command-line overrides.
 
-## Acknowledgement
+## Acknowledgements
 The repo is built upon [CityGaussian](https://github.com/Linketic/CityGaussian/tree/V1-original), [BilaRF](https://github.com/yuehaowang/bilarf), [VastGaussian](https://github.com/kangpeilun/VastGaussian), [CLM-GS](https://github.com/nyu-systems/CLM-GS#dataset-preparation). Thanks for their great work!
 
+We are also deeply grateful to Taiwan's National Science and Technology Council (NSTC) and the NVIDIA AI Technology Center (NVAITC) for their extraordinary support.
 ## Citation
 
 If you use this repository, please cite:
