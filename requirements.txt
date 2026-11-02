@@ -19,3 +19,5 @@ tensorly
 gsplat==1.5.3
 gsply==0.2.13
 imageio[ffmpeg]
+huggingface-hub==2.3.0
+Brotli>=1.2.0

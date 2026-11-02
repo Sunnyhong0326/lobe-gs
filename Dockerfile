@@ -9,6 +9,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 ARG UID=1000
 ARG GID=1000
+ARG COLMAP_VERSION=3.9.1
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -23,9 +24,39 @@ RUN apt-get update && \
         g++ \
         openssh-client \
         cmake \
-        ninja-build && \
+        ninja-build \
+        libboost-program-options-dev \
+        libboost-filesystem-dev \
+        libboost-graph-dev \
+        libboost-system-dev \
+        libeigen3-dev \
+        libsuitesparse-dev \
+        libfreeimage-dev \
+        libflann-dev \
+        liblz4-dev \
+        libsqlite3-dev \
+        libmetis-dev \
+        libgoogle-glog-dev \
+        libgflags-dev \
+        libglew-dev \
+        libceres-dev \
+        qtbase5-dev \
+        libqt5opengl5-dev \
+        libcgal-dev && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+
+RUN git clone --recursive --branch "${COLMAP_VERSION}" --depth 1 \
+        https://github.com/colmap/colmap.git /opt/colmap && \
+    cmake -S /opt/colmap -B /opt/colmap/build \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCUDA_ENABLED=ON \
+        -DGUI_ENABLED=OFF \
+        -DCMAKE_CUDA_ARCHITECTURES="${CUDA_ARCHITECTURES}" && \
+    cmake --build /opt/colmap/build --parallel "$(nproc)" && \
+    cmake --install /opt/colmap/build && \
+    ldconfig && \
+    rm -rf /opt/colmap
 
 RUN if getent group ${GID} > /dev/null 2>&1; then \
         groupmod -n appgroup $(getent group ${GID} | cut -d: -f1); \
@@ -67,7 +98,5 @@ RUN pip install --no-cache-dir -r requirements.txt && \
 RUN pip install --no-cache-dir --no-build-isolation submodules/fused-bilagrid
 
 RUN pip install --no-cache-dir numpy==1.26.4
-RUN pip install --upgrade "Brotli>=1.2.0"
-RUN pip install --no-cache-dir "huggingface-hub==2.3.0"
 
 RUN rm -rf ./requirements.txt ./submodules

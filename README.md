@@ -91,9 +91,6 @@ Results are saved under `/app/output` (the host's `$OUTPUT` directory).
 ### 2. Custom dataset
 
 Reconstruct and undistort your photos with COLMAP, then split the reconstruction.
-`convert.py` requires a COLMAP executable on `PATH` (or set
-`--colmap_executable /path/to/colmap`). The supplied Dockerfile does not install
-COLMAP; install it in your conversion environment before running this step.
 
 ```bash
 python convert.py -img /data/photos -o /data/colmap_scene
